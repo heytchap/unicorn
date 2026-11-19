@@ -1223,13 +1223,20 @@ static void test_arm_neon_align_qualifier(void)
 {
     // vst1.8 {d16-d17}, [r3 :64]
     const char qualified[] = "\x1f\x0a\x43\xf4";
+    // vst1.8 {d16-d17}, [r3 :128]
+    const char qualified128[] = "\x2f\x0a\x43\xf4";
     // vst1.8 {d16-d17}, [r3]
     const char plain[] = "\x0f\x0a\x43\xf4";
 
     TEST_CHECK(test_arm_neon_align_qualifier_run(qualified, 0x10008) == -1);
     // EXCP_DATA_ABORT
     TEST_CHECK(test_arm_neon_align_qualifier_run(qualified, 0x10004) == 4);
-    TEST_CHECK(test_arm_neon_align_qualifier_run(plain, 0x10004) == -1);
+    // 8-byte aligned, so the plain access passes and the 128-bit qualifier
+    // faults (the MMU is off, which already faults a plain access that is
+    // not 8-byte aligned).
+    TEST_CHECK(test_arm_neon_align_qualifier_run(plain, 0x10008) == -1);
+    TEST_CHECK(test_arm_neon_align_qualifier_run(qualified128, 0x10008) == 4);
+    TEST_CHECK(test_arm_neon_align_qualifier_run(qualified128, 0x10010) == -1);
 }
 
 TEST_LIST = {{"test_arm_nop", test_arm_nop},

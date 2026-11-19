@@ -11667,6 +11667,21 @@ static uint32_t rebuild_hflags_a32(CPUARMState *env, int fp_el,
         FIELD_DP32(flags, TBFLAG_A32, HSTR_ACTIVE, 1, flags);
     }
 
+    /*
+     * Unicorn: with the VMSA stage 1 MMU off every data access is
+     * Strongly-ordered (ARMv7-A B3.2.1), so unaligned word, halfword and
+     * doubleword accesses take an alignment fault, as upstream QEMU's
+     * aprofile_require_alignment() models. An X-T3 hung before its LED
+     * running SD card code whose unaligned loads ran with the MMU off.
+     * HCR.DC makes the default type Normal; PMSA cores keep their
+     * background map.
+     */
+    if (!arm_feature(env, ARM_FEATURE_PMSA) &&
+        !(arm_sctlr(env, arm_current_el(env)) & SCTLR_M) &&
+        !(arm_current_el(env) < 2 && (arm_hcr_el2_eff(env) & HCR_DC))) {
+        FIELD_DP32(flags, TBFLAG_A32, ALIGN_MEM, 1, flags);
+    }
+
     return rebuild_hflags_common_32(env, fp_el, mmu_idx, flags);
 }
 

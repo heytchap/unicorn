@@ -954,6 +954,18 @@ static inline TCGv gen_aa32_addr(DisasContext *s, TCGv_i32 a32, MemOp op)
     return addr;
 }
 
+/*
+ * Unicorn: require alignment while the VMSA stage 1 MMU is off. Doublewords
+ * (LDRD, VLDR) are word accesses and need word alignment.
+ */
+static inline MemOp gen_aa32_align(DisasContext *s, MemOp opc)
+{
+    if (s->align_mem && !(opc & MO_AMASK)) {
+        opc |= (opc & MO_SIZE) == MO_64 ? MO_ALIGN_4 : MO_ALIGN;
+    }
+    return opc;
+}
+
 static void gen_aa32_ld_i32(DisasContext *s, TCGv_i32 val, TCGv_i32 a32,
                             int index, MemOp opc)
 {
@@ -964,6 +976,7 @@ static void gen_aa32_ld_i32(DisasContext *s, TCGv_i32 val, TCGv_i32 a32,
         !arm_dc_feature(s, ARM_FEATURE_M_MAIN)) {
         opc |= MO_ALIGN;
     }
+    opc = gen_aa32_align(s, opc);
 
     addr = gen_aa32_addr(s, a32, opc);
     tcg_gen_qemu_ld_i32(tcg_ctx, val, addr, index, opc);
@@ -980,6 +993,7 @@ static void gen_aa32_st_i32(DisasContext *s, TCGv_i32 val, TCGv_i32 a32,
         !arm_dc_feature(s, ARM_FEATURE_M_MAIN)) {
         opc |= MO_ALIGN;
     }
+    opc = gen_aa32_align(s, opc);
 
     addr = gen_aa32_addr(s, a32, opc);
     tcg_gen_qemu_st_i32(tcg_ctx, val, addr, index, opc);
@@ -1015,7 +1029,10 @@ static void gen_aa32_ld_i64(DisasContext *s, TCGv_i64 val, TCGv_i32 a32,
                             int index, MemOp opc)
 {
     TCGContext *tcg_ctx = s->uc->tcg_ctx;
-    TCGv addr = gen_aa32_addr(s, a32, opc);
+    TCGv addr;
+
+    opc = gen_aa32_align(s, opc);
+    addr = gen_aa32_addr(s, a32, opc);
     tcg_gen_qemu_ld_i64(tcg_ctx, val, addr, index, opc);
     gen_aa32_frob64(s, val);
     tcg_temp_free(tcg_ctx, addr);
@@ -1031,7 +1048,10 @@ static void gen_aa32_st_i64(DisasContext *s, TCGv_i64 val, TCGv_i32 a32,
                             int index, MemOp opc)
 {
     TCGContext *tcg_ctx = s->uc->tcg_ctx;
-    TCGv addr = gen_aa32_addr(s, a32, opc);
+    TCGv addr;
+
+    opc = gen_aa32_align(s, opc);
+    addr = gen_aa32_addr(s, a32, opc);
 
     /* Not needed for user-mode BE32, where we use MO_BE instead.  */
     // Unicorn: By default UC_MODE_BIG_MODE is BE32 mode, which in fact qemu-usermode.
@@ -11292,6 +11312,7 @@ static void arm_tr_init_disas_context(DisasContextBase *dcbase, CPUState *cs)
         dc->debug_target_el =
             FIELD_EX32(tb_flags, TBFLAG_ANY, DEBUG_TARGET_EL);
         dc->sctlr_b = FIELD_EX32(tb_flags, TBFLAG_A32, SCTLR_B);
+        dc->align_mem = FIELD_EX32(tb_flags, TBFLAG_A32, ALIGN_MEM);
         dc->hstr_active = FIELD_EX32(tb_flags, TBFLAG_A32, HSTR_ACTIVE);
         dc->ns = FIELD_EX32(tb_flags, TBFLAG_A32, NS);
         dc->vfp_enabled = FIELD_EX32(tb_flags, TBFLAG_A32, VFPEN);
@@ -11475,6 +11496,8 @@ static void arm_tr_translate_insn(DisasContextBase *dcbase, CPUState *cpu)
     if (arm_pre_translate_insn(dc)) {
         return;
     }
+    // A Thumb block that ended inside an IT block leaves no_exit_request set; ARM code has no IT blocks, so exit checks stay enabled.
+    dc->uc->no_exit_request = false;
 
     // Unicorn: end address tells us to stop emulation
     if (uc_addr_is_exit(dc->uc, dcbase->pc_next)) {

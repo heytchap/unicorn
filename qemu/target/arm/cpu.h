@@ -3191,6 +3191,11 @@ FIELD(TBFLAG_A32, HSTR_ACTIVE, 16, 1)
  * the same thing as the current security state of the processor!
  */
 FIELD(TBFLAG_A32, NS, 17, 1)
+/*
+ * Unicorn: set while the VMSA stage 1 MMU is off. Data accesses are then
+ * Strongly-ordered and an unaligned access takes an alignment fault.
+ */
+FIELD(TBFLAG_A32, ALIGN_MEM, 18, 1)
 
 /*
  * Bit usage when in AArch32 state, for M-profile only.

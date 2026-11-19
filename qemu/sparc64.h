@@ -5,7 +5,9 @@
 #define UNICORN_ARCH_POSTFIX _sparc64
 #endif
 #define tcg_flush_physical_tlb tcg_flush_physical_tlb_sparc64
+#define uc_invalidate_exit_tb uc_invalidate_exit_tb_sparc64
 #define embedder_restart_insn embedder_restart_insn_sparc64
+#define uc_invalidate_exit_tb uc_invalidate_exit_tb_sparc64
 #define tcg_qemu_tb_exec tcg_qemu_tb_exec_sparc64
 #define tci_tb_ptr tci_tb_ptr_sparc64
 #define helper_tci_hookcode helper_tci_hookcode_sparc64

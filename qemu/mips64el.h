@@ -5,7 +5,9 @@
 #define UNICORN_ARCH_POSTFIX _mips64el
 #endif
 #define tcg_flush_physical_tlb tcg_flush_physical_tlb_mips64el
+#define uc_invalidate_exit_tb uc_invalidate_exit_tb_mips64el
 #define embedder_restart_insn embedder_restart_insn_mips64el
+#define uc_invalidate_exit_tb uc_invalidate_exit_tb_mips64el
 #define tcg_qemu_tb_exec tcg_qemu_tb_exec_mips64el
 #define tci_tb_ptr tci_tb_ptr_mips64el
 #define helper_tci_hookcode helper_tci_hookcode_mips64el

@@ -24,6 +24,8 @@ typedef struct DisasContext {
     int condexec_cond;
     int thumb;
     int sctlr_b;
+    /* Unicorn: data accesses must be aligned (VMSA stage 1 MMU off). */
+    bool align_mem;
     MemOp be_data;
     int user;
     ARMMMUIdx mmu_idx; /* MMU index to use for normal loads/stores */
